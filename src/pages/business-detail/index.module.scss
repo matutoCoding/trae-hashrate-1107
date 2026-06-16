@@ -42,6 +42,42 @@
   font-weight: $font-weight-medium;
 }
 
+.approvalProgressMini {
+  margin-top: $spacing-lg;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: $radius-md;
+  backdrop-filter: blur(6rpx);
+}
+
+.progressMiniText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.progressMiniBar {
+  height: 12rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: $radius-round;
+  overflow: hidden;
+}
+
+.progressMiniFill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD84D 0%, #FFFFFF 100%);
+  border-radius: $radius-round;
+  transition: width 0.4s ease;
+}
+
+.progressMiniHint {
+  font-size: $font-size-xs;
+  opacity: 0.9;
+  display: block;
+  margin-top: $spacing-xs;
+}
+
 .ticketBlock {
   margin-top: $spacing-lg;
   padding-top: $spacing-lg;

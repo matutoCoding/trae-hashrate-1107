@@ -15,6 +15,9 @@ const QueuePage: React.FC = () => {
   const callNext = useAppStore(s => s.callNext);
   const processPass = useAppStore(s => s.processPass);
   const acceptNumber = useAppStore(s => s.acceptNumber);
+  const completeNumber = useAppStore(s => s.completeNumber);
+  const businessTypes = useAppStore(s => s.businessTypes);
+  const approvalChainConfigs = useAppStore(s => s.approvalChainConfigs);
   const currentUser = useAppStore(s => s.currentUser);
 
   const [activeCategory, setActiveCategory] = useState<string>('全部');
@@ -85,6 +88,55 @@ const QueuePage: React.FC = () => {
     Taro.showToast({ title: `已受理 ${item.ticketNumber}`, icon: 'success' });
   };
 
+  const handleComplete = (item: QueueItem) => {
+    const bizType = businessTypes.find(b => b.id === item.businessTypeId);
+    const chainConfig = approvalChainConfigs.find(c => c.businessTypeId === item.businessTypeId);
+    let hint = '';
+    if (bizType?.requireApproval) {
+      if (chainConfig) {
+        hint = `\n\n该业务需要审批，办结后将进入「${chainConfig.name}」，并在审批中心生成待办事项`;
+      } else {
+        hint = `\n\n⚠️ 该业务标记需要审批，但未找到对应审批链配置！`;
+      }
+    } else {
+      hint = `\n\n该业务无需审批，办结后直接显示完成。`;
+    }
+
+    Taro.showModal({
+      title: '完成窗口办理',
+      content: `确认号码 ${item.ticketNumber}（${item.businessTypeName}）窗口办理已完成？${hint}`,
+      success: res => {
+        if (res.confirm) {
+          completeNumber(item.id);
+          let resultMsg = `号码 ${item.ticketNumber} 已办结`;
+          if (bizType?.requireApproval && chainConfig) {
+            resultMsg += `，已进入审批流`;
+          } else if (bizType?.requireApproval && !chainConfig) {
+            resultMsg += `，⚠️ 审批链配置缺失，业务直接办结`;
+          } else {
+            resultMsg += `，无需审批`;
+          }
+          Taro.showToast({
+            title: resultMsg,
+            icon: bizType?.requireApproval && !chainConfig ? 'none' : 'success',
+            duration: 2800
+          });
+          if (bizType?.requireApproval && !chainConfig) {
+            setTimeout(() => {
+              Taro.showModal({
+                title: '⚠️ 数据异常提醒',
+                content: `「${bizType.name}」标记为需要审批，但没有配置对应的审批链。\n请联系管理员在审批中心补齐该业务的审批链配置，否则相关业务会跳过审批直接办结。`,
+                showCancel: false,
+                confirmColor: '#F53F3F'
+              });
+            }, 2500);
+          }
+          console.log('[Queue] 完成窗口办理:', item.ticketNumber, bizType?.requireApproval ? '需审批' : '直接办结');
+        }
+      }
+    });
+  };
+
   const handlePass = (item: QueueItem) => {
     const result = processPass(item.id);
     Taro.showModal({
@@ -101,6 +153,20 @@ const QueuePage: React.FC = () => {
         success: res => {
           if (res.tapIndex === 0) handleAccept(item);
           if (res.tapIndex === 1) handlePass(item);
+        }
+      });
+    } else if (item.status === 'processing') {
+      Taro.showActionSheet({
+        itemList: ['完成窗口办理', '查看号码详情'],
+        success: res => {
+          if (res.tapIndex === 0) handleComplete(item);
+          if (res.tapIndex === 1) {
+            Taro.showModal({
+              title: item.ticketNumber,
+              content: `业务：${item.businessTypeName}\n市民：${item.citizenName}\n电话：${item.phone}\n窗口：${item.windowNumber || '未分配'}\n状态：办理中`,
+              showCancel: false
+            });
+          }
         }
       });
     }

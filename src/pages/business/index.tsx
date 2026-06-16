@@ -3,9 +3,10 @@ import { View, Text, ScrollView } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 import { useAppStore } from '@/store';
+import { getApprovalNodeStats } from '@/utils/approvalRouter';
 import BusinessCard from '@/components/BusinessCard';
-import type { BusinessRecord } from '@/types';
 import classnames from 'classnames';
+import type { BusinessRecord } from '@/types';
 
 type FilterType = 'all' | 'queuing' | 'processing' | 'approving' | 'completed' | 'rejected';
 
@@ -104,21 +105,28 @@ const BusinessPage: React.FC = () => {
   };
 
   const getApprovalProgressLabel = (record: BusinessRecord): string => {
-    if (record.status !== 'approving') return APPROVAL_STATUS_LABEL[record.status];
-    const instance = approvalInstances.find(i => i.businessId === record.id);
-    if (instance) {
-      const passed = instance.approvalHistory.filter(h => h.action === 'approve').length;
-      const total = instance.approvalHistory.filter(h => h.action !== 'route').length + 1;
-      if (instance.currentNodeId) {
-        const chain = approvalChainConfigs.find(c => c.id === instance.chainConfigId);
-        const currentNode = chain?.nodes.find(n => n.id === instance.currentNodeId);
-        if (currentNode) {
-          return `审批中(${passed}/${total}) · ${currentNode.name}`;
-        }
-      }
-      return `审批流转中(${passed}/${total})`;
+    if (record.status !== 'approving') {
+      if (record.status === 'completed') return '已完成';
+      if (record.status === 'rejected') return '申请已驳回';
+      return APPROVAL_STATUS_LABEL[record.status];
     }
-    return APPROVAL_STATUS_LABEL[record.status];
+    const instance = approvalInstances.find(i => i.businessId === record.id);
+    const chain = approvalChainConfigs.find(c => c.id === instance?.chainConfigId || record.approvalChainId);
+    if (!instance || !chain) return '审批流转中';
+
+    const stats = getApprovalNodeStats(
+      chain,
+      record.formData || {},
+      instance.approvalHistory,
+      instance.currentNodeId
+    );
+
+    const nodeLabel = stats.pendingNodeName
+      ? ` · ${stats.pendingNodeName}`
+      : stats.remaining > 0
+        ? ` · 还有${stats.remaining}个节点待审`
+        : '';
+    return `审批中 ${stats.passed}/${stats.totalApprovals}${nodeLabel}`;
   };
 
   const handleQuickAction = (record: BusinessRecord, action: string) => {
@@ -143,10 +151,25 @@ const BusinessPage: React.FC = () => {
         Taro.showActionSheet({
           itemList: ['查看审批进度', '补充材料', '联系窗口'],
           success: r => {
-            if (r.tapIndex === 0 && record.approvalChainId) {
-              Taro.navigateTo({
-                url: `/pages/approval-visual/index?instanceId=&businessId=${record.id}&mode=instance`
-              });
+            if (r.tapIndex === 0) {
+              const instance = approvalInstances.find(i => i.businessId === record.id);
+              const chain = record.approvalChainId
+                ? approvalChainConfigs.find(c => c.id === record.approvalChainId)
+                : null;
+              const params = new URLSearchParams();
+              if (instance) {
+                params.append('instanceId', instance.id);
+                params.append('chainId', instance.chainConfigId);
+              } else if (chain) {
+                params.append('chainId', chain.id);
+                params.append('mode', 'preview');
+              }
+              params.append('businessId', record.id);
+              if (!instance && !chain) {
+                Taro.showToast({ title: '未找到该业务对应的审批链', icon: 'none' });
+                return;
+              }
+              Taro.navigateTo({ url: `/pages/approval-visual/index?${params.toString()}` });
             }
             if (r.tapIndex === 1) {
               Taro.showToast({ title: '材料上传功能开发中', icon: 'none' });

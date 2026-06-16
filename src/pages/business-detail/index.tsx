@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import styles from './index.module.scss';
 import { useAppStore } from '@/store';
 import ApprovalChain from '@/components/ApprovalChain';
+import { getApprovalNodeStats } from '@/utils/approvalRouter';
 import type { BusinessRecord, ApprovalInstance } from '@/types';
 import classnames from 'classnames';
 
@@ -193,9 +194,18 @@ const BusinessDetailPage: React.FC = () => {
     switch (action) {
       case 'approval':
         if (chainConfig) {
-          Taro.navigateTo({
-            url: `/pages/approval-visual/index?chainId=${chainConfig.id}&businessId=${record?.id}&instanceId=${instance?.id || ''}`
-          });
+          const params = new URLSearchParams();
+          params.append('chainId', chainConfig.id);
+          params.append('businessId', record?.id || '');
+          if (instance) {
+            params.append('instanceId', instance.id);
+            params.append('mode', 'instance');
+          } else {
+            params.append('mode', 'preview');
+          }
+          Taro.navigateTo({ url: `/pages/approval-visual/index?${params.toString()}` });
+        } else {
+          Taro.showToast({ title: '该业务未配置审批链', icon: 'none' });
         }
         break;
       case 'material':
@@ -242,11 +252,57 @@ const BusinessDetailPage: React.FC = () => {
 
   const timeline = buildTimeline();
 
+  const approvalStats = useMemo(() => {
+    if (!chainConfig || !record) return null;
+    if (record.status !== 'approving' && record.status !== 'completed' && record.status !== 'rejected') return null;
+    return getApprovalNodeStats(
+      chainConfig,
+      record.formData || {},
+      instance?.approvalHistory || [],
+      instance?.currentNodeId || ''
+    );
+  }, [chainConfig, record, instance]);
+
+  const detailStatusLabel = () => {
+    if (record.status === 'approving' && approvalStats) {
+      const nodeTxt = approvalStats.pendingNodeName ? ` · ${approvalStats.pendingNodeName}` : '';
+      const remainTxt = approvalStats.remaining > 0 ? `（还剩${approvalStats.remaining}个节点）` : '';
+      return `审批中 ${approvalStats.passed}/${approvalStats.totalApprovals}${nodeTxt}${remainTxt}`;
+    }
+    if (record.status === 'completed' && approvalStats) {
+      return `办理完成（通过 ${approvalStats.passed}/${approvalStats.totalApprovals} 个审批）`;
+    }
+    return STATUS_LABEL[record.status];
+  };
+
   return (
     <View className={`pageContainer ${styles.container}`}>
       <View className={styles.statusBanner}>
         <Text className={styles.bannerBizName}>📋 {record.businessTypeName}</Text>
-        <View className={styles.bannerStatus}>{STATUS_LABEL[record.status]}</View>
+        <View className={styles.bannerStatus}>{detailStatusLabel()}</View>
+
+        {approvalStats && approvalStats.totalApprovals > 0 && (
+          <View className={styles.approvalProgressMini}>
+            <Text className={styles.progressMiniText}>
+              审批进度：{approvalStats.passed}/{approvalStats.totalApprovals}
+            </Text>
+            <View className={styles.progressMiniBar}>
+              <View
+                className={styles.progressMiniFill}
+                style={{
+                  width: `${(approvalStats.passed / approvalStats.totalApprovals) * 100}%`
+                }}
+              />
+            </View>
+            <Text className={styles.progressMiniHint}>
+              {approvalStats.remaining > 0
+                ? `剩余 ${approvalStats.remaining} 个节点待审`
+                : record.status === 'rejected'
+                  ? '已驳回'
+                  : '全部通过'}
+            </Text>
+          </View>
+        )}
 
         <View className={styles.ticketBlock}>
           <View>

@@ -226,3 +226,67 @@ export const getNodeStatusMap = (
 
   return statusMap;
 };
+
+/**
+ * 计算审批节点进度统计（基于实际会经过的路径）
+ * 返回：总数totalApprovals / 已通过passed / 当前进行中current / 剩余remaining / 各阶段节点列表
+ */
+export const getApprovalNodeStats = (
+  config: ApprovalChainConfig,
+  formData: Record<string, any> = {},
+  approvalHistory: ApprovalRecord[] = [],
+  currentNodeId: string = ''
+) => {
+  const routeResult = routeApprovalChain(config, config.startNodeId, formData);
+  const pathApprovalNodeIds = routeResult.passedNodes
+    .map(id => findNodeById(config, id))
+    .filter(n => n && n.type === 'approval')
+    .map(n => n!.id);
+  if (
+    routeResult.nextNodeId &&
+    !routeResult.isEnd &&
+    !pathApprovalNodeIds.includes(routeResult.nextNodeId)
+  ) {
+    const nextNode = findNodeById(config, routeResult.nextNodeId);
+    if (nextNode && nextNode.type === 'approval') {
+      pathApprovalNodeIds.push(routeResult.nextNodeId);
+    }
+  }
+  let cursor = 0;
+  let pendingId: string | null = null;
+  let passedIds: string[] = [];
+  const historyApprovals = approvalHistory.filter(h => h.action !== 'route');
+  for (let i = 0; i < pathApprovalNodeIds.length; i++) {
+    const nid = pathApprovalNodeIds[i];
+    const hist = historyApprovals.find(h => h.nodeId === nid);
+    if (hist && hist.action === 'approve') {
+      passedIds.push(nid);
+      cursor = i + 1;
+    } else {
+      if (currentNodeId === nid || (!hist && cursor === i)) {
+        pendingId = nid;
+      }
+      break;
+    }
+  }
+  const currentIndex = pendingId
+    ? pathApprovalNodeIds.indexOf(pendingId)
+    : passedIds.length === pathApprovalNodeIds.length
+      ? pathApprovalNodeIds.length
+      : cursor;
+  const total = pathApprovalNodeIds.length;
+  const passed = passedIds.length;
+  const remaining = total - passed - (pendingId ? 1 : 0);
+  const pendingNode = pendingId ? findNodeById(config, pendingId) : null;
+  return {
+    totalApprovals: total,
+    passed,
+    currentIndex,
+    remaining: Math.max(0, remaining),
+    pendingId,
+    pendingNodeName: pendingNode?.name || '',
+    passedIds,
+    allApprovalNodeIds: pathApprovalNodeIds,
+    allReachableNodes: routeResult.passedNodes
+  };
+};
