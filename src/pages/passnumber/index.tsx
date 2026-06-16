@@ -17,6 +17,12 @@ const PassNumberPage: React.FC = () => {
   const systemConfig = useAppStore(s => s.systemConfig);
 
   const [activeTab, setActiveTab] = useState<TabType>('passed');
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  const triggerHighlight = (id: string) => {
+    setHighlightedId(id);
+    setTimeout(() => setHighlightedId(null), 3000);
+  };
 
   const stats = useMemo(() => {
     const passed = queueList.filter(q => q.status === 'passed').length;
@@ -72,6 +78,12 @@ const PassNumberPage: React.FC = () => {
             icon: result.isInvalid ? 'none' : 'success',
             duration: 2500
           });
+          if (result.isInvalid) {
+            setTimeout(() => {
+              setActiveTab('invalid');
+              triggerHighlight(item.id);
+            }, 500);
+          }
           console.log('[PassNumber] 过号处理:', item.id, result);
         }
       }
@@ -109,6 +121,10 @@ const PassNumberPage: React.FC = () => {
                   icon: 'none',
                   duration: 2000
                 });
+                setTimeout(() => {
+                  setActiveTab('invalid');
+                  triggerHighlight(item.id);
+                }, 500);
                 console.log('[PassNumber] 强制作废:', item.id, item.ticketNumber);
               }
             }
@@ -210,7 +226,8 @@ const PassNumberPage: React.FC = () => {
               <View
                 key={item.id}
                 className={classnames(styles.callLogCard, {
-                  [styles.callLogCardInvalid]: item.status === 'invalid'
+                  [styles.callLogCardInvalid]: item.status === 'invalid',
+                  [styles.callLogCardHighlight]: highlightedId === item.id
                 })}
               >
                 <View className={styles.logHeader}>

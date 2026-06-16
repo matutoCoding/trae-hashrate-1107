@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 import { useAppStore } from '@/store';
-import { advanceAfterApproval } from '@/utils/approvalRouter';
 import type {
   ApprovalTodoItem,
   ApprovalChainConfig,
@@ -19,6 +18,15 @@ const ApprovalPage: React.FC = () => {
   const currentUser = useAppStore(s => s.currentUser);
   const approveNode = useAppStore(s => s.approveNode);
   const rejectNode = useAppStore(s => s.rejectNode);
+  const cleanupInvalidTodos = useAppStore(s => s.cleanupInvalidTodos);
+
+  useEffect(() => {
+    const removed = cleanupInvalidTodos();
+    if (removed > 0) {
+      console.log(`[Approval] 页面加载时清理了 ${removed} 条异常待办`);
+      Taro.showToast({ title: `清理了${removed}条异常待办`, icon: 'none', duration: 2000 });
+    }
+  }, [cleanupInvalidTodos]);
 
   const stats = useMemo(() => {
     const todo = approvalTodoList.length;
@@ -46,35 +54,19 @@ const ApprovalPage: React.FC = () => {
       placeholderText: '请输入审批意见（可选）',
       success: res => {
         if (res.confirm) {
-          approveNode(
+          const result = approveNode(
             todo.instanceId,
             todo.nodeId,
             currentUser.id,
             currentUser.name,
             res.content
           );
-          const instance = approvalInstances.find(i => i.id === todo.instanceId);
-          const chainConfig = instance
-            ? approvalChainConfigs.find(c => c.id === instance.chainConfigId)
-            : null;
-          const business = businessRecords.find(b => b.id === todo.businessId);
-          const formData = business?.formData || {};
-          let nextStepMsg = '';
-          if (chainConfig && instance) {
-            const routeResult = advanceAfterApproval(chainConfig, todo.nodeId, true, formData);
-            if (routeResult.isEnd || !routeResult.nextNodeId) {
-              nextStepMsg = '\n✅ 审批流程已全部通过，业务办理完成！';
-            } else {
-              const nextNode = chainConfig.nodes.find(n => n.id === routeResult.nextNodeId);
-              nextStepMsg = `\n→ 推进到下一节点：${nextNode?.name || routeResult.nextNodeId}`;
-            }
-          }
           Taro.showToast({
-            title: '审批通过' + nextStepMsg,
-            icon: 'none',
+            title: result.message,
+            icon: result.success ? 'success' : 'none',
             duration: 2500
           });
-          console.log('[Approval] 通过审批:', todo, nextStepMsg);
+          console.log('[Approval] 通过审批结果:', todo.id, result);
         }
       }
     });
@@ -93,7 +85,7 @@ const ApprovalPage: React.FC = () => {
             Taro.showToast({ title: '请输入驳回理由', icon: 'none' });
             return;
           }
-          rejectNode(
+          const result = rejectNode(
             todo.instanceId,
             todo.nodeId,
             currentUser.id,
@@ -101,11 +93,11 @@ const ApprovalPage: React.FC = () => {
             res.content
           );
           Taro.showToast({
-            title: '已驳回，业务状态已更新',
-            icon: 'none',
-            duration: 2000
+            title: result.message,
+            icon: result.success ? 'none' : 'none',
+            duration: 2500
           });
-          console.log('[Approval] 驳回审批:', todo, res.content);
+          console.log('[Approval] 驳回审批结果:', todo.id, result);
         }
       }
     });

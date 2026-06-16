@@ -7,6 +7,7 @@ import classnames from 'classnames';
 interface BusinessCardProps {
   record: BusinessRecord;
   onClick?: () => void;
+  customStatus?: string;
 }
 
 const statusConfig: Record<BusinessRecord['status'], { label: string; className: string }> = {
@@ -18,8 +19,9 @@ const statusConfig: Record<BusinessRecord['status'], { label: string; className:
   rejected: { label: '已驳回', className: 'statusRejected' }
 };
 
-const BusinessCard: React.FC<BusinessCardProps> = ({ record, onClick }) => {
+const BusinessCard: React.FC<BusinessCardProps> = ({ record, onClick, customStatus }) => {
   const status = statusConfig[record.status];
+  const displayLabel = customStatus || status.label;
   const formatTime = (iso: string) => {
     const d = new Date(iso);
     return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -31,7 +33,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ record, onClick }) => {
         <View className={styles.titleBlock}>
           <Text className={styles.bizName}>{record.businessTypeName}</Text>
           <Text className={classnames(styles.statusTag, styles[status.className])}>
-            {status.label}
+            {displayLabel}
           </Text>
         </View>
         {record.ticketNumber && (

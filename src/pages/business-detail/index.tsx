@@ -77,6 +77,14 @@ const BusinessDetailPage: React.FC = () => {
           desc: `号码 ${record.ticketNumber} 已在 ${queueInfo.windowNumber} 窗口叫号`,
           type: queueInfo.status === 'processing' || queueInfo.status === 'completed' ? 'done' : 'current'
         });
+        if (queueInfo.status === 'completed' || record.status !== 'queuing') {
+          steps.push({
+            title: '窗口办理完成',
+            time: formatTime(queueInfo.completeTime || record.updateTime),
+            desc: '窗口工作人员已完成材料核验与业务录入',
+            type: 'done'
+          });
+        }
       } else {
         steps.push({
           title: '排队中',
@@ -89,7 +97,14 @@ const BusinessDetailPage: React.FC = () => {
 
     if (instance && instance.approvalHistory.length > 0) {
       instance.approvalHistory.forEach(h => {
-        if (h.action !== 'route') {
+        if (h.action === 'route') {
+          steps.push({
+            title: '条件路由判断',
+            time: formatTime(h.time),
+            desc: `${h.nodeName} · 系统根据条件自动选择分支`,
+            type: 'done'
+          });
+        } else {
           steps.push({
             title: `${h.nodeName} - ${h.action === 'approve' ? '审批通过' : '审批驳回'}`,
             time: formatTime(h.time),
@@ -99,6 +114,16 @@ const BusinessDetailPage: React.FC = () => {
           });
         }
       });
+      if (instance.status === 'processing' && instance.currentNodeId) {
+        const chain = chainConfig;
+        const currentNode = chain?.nodes.find(n => n.id === instance.currentNodeId);
+        steps.push({
+          title: `${currentNode?.name || '审批节点'} · 审批中`,
+          time: formatTime(record.updateTime),
+          desc: '等待审批人处理',
+          type: 'current'
+        });
+      }
     } else if (record.status === 'approving') {
       steps.push({
         title: '审批中',
@@ -112,7 +137,7 @@ const BusinessDetailPage: React.FC = () => {
       steps.push({
         title: '办理完成',
         time: formatTime(record.completeTime || record.updateTime),
-        desc: record.remark || '所有流程已完成',
+        desc: instance?.status === 'approved' ? '所有审批节点已通过，业务办理完成' : (record.remark || '所有流程已完成'),
         type: 'done'
       });
     }

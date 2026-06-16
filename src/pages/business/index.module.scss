@@ -196,3 +196,53 @@
   background: $color-warning-bg;
   color: $color-warning;
 }
+
+.rejectReasonBar {
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $color-error-bg;
+  border-radius: $radius-md;
+  border-left: 6rpx solid $color-error;
+}
+
+.rejectReasonLabel {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+}
+
+.rejectReasonText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-top: 4rpx;
+  display: block;
+  line-height: 1.5;
+}
+
+.approvalHintBar {
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: rgba(30, 111, 255, 0.08);
+  border-radius: $radius-md;
+  border-left: 6rpx solid $color-primary;
+}
+
+.approvalHintText {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.completeHintBar {
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $color-success-bg;
+  border-radius: $radius-md;
+  border-left: 6rpx solid $color-success;
+}
+
+.completeHintText {
+  font-size: $font-size-sm;
+  color: $color-success;
+  font-weight: $font-weight-medium;
+}

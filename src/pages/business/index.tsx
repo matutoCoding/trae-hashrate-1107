@@ -20,15 +20,26 @@ const FILTERS: { label: string; value: FilterType }[] = [
 
 const STEP_LABELS: Record<BusinessRecord['status'], string[]> = {
   draft: ['草稿'],
-  queuing: ['提交', '排队中', '办理中', '审批中', '完成'],
+  queuing: ['已提交', '排队中', '办理中', '审批中', '完成'],
   processing: ['已提交', '排队完成', '办理中', '审批中', '完成'],
   approving: ['已提交', '排队完成', '办理完成', '审批中', '完成'],
   completed: ['已提交', '排队完成', '办理完成', '审批完成', '已完成'],
   rejected: ['已提交', '排队完成', '办理完成', '审批驳回', '结束']
 };
 
+const APPROVAL_STATUS_LABEL: Record<BusinessRecord['status'], string> = {
+  draft: '草稿',
+  queuing: '排队等待中',
+  processing: '窗口办理中',
+  approving: '审批流转中',
+  completed: '办理完成',
+  rejected: '申请已驳回'
+};
+
 const BusinessPage: React.FC = () => {
   const businessRecords = useAppStore(s => s.businessRecords);
+  const approvalInstances = useAppStore(s => s.approvalInstances);
+  const approvalChainConfigs = useAppStore(s => s.approvalChainConfigs);
   const currentUser = useAppStore(s => s.currentUser);
   const updateBusinessStatus = useAppStore(s => s.updateBusinessStatus);
 
@@ -70,7 +81,7 @@ const BusinessPage: React.FC = () => {
     });
   };
 
-  const getStepClass = (status: BusinessRecord['status'], stepIdx: number) => {
+  const getStepClass = (status: BusinessRecord['status'], stepIdx: number, instance?: any) => {
     const stepMap: Record<BusinessRecord['status'], number> = {
       draft: -1,
       queuing: 1,
@@ -79,11 +90,35 @@ const BusinessPage: React.FC = () => {
       completed: 4,
       rejected: 3
     };
-    const currentStep = stepMap[status];
+    let currentStep = stepMap[status];
+    if (status === 'approving' && instance && instance.approvalHistory) {
+      const passedApprovals = instance.approvalHistory.filter((h: any) => h.action === 'approve').length;
+      if (passedApprovals > 0) {
+        currentStep = 3;
+      }
+    }
     if (status === 'rejected' && stepIdx === 3) return 'progressStepReject';
     if (stepIdx < currentStep) return 'progressStepDone';
     if (stepIdx === currentStep) return 'progressStepActive';
     return '';
+  };
+
+  const getApprovalProgressLabel = (record: BusinessRecord): string => {
+    if (record.status !== 'approving') return APPROVAL_STATUS_LABEL[record.status];
+    const instance = approvalInstances.find(i => i.businessId === record.id);
+    if (instance) {
+      const passed = instance.approvalHistory.filter(h => h.action === 'approve').length;
+      const total = instance.approvalHistory.filter(h => h.action !== 'route').length + 1;
+      if (instance.currentNodeId) {
+        const chain = approvalChainConfigs.find(c => c.id === instance.chainConfigId);
+        const currentNode = chain?.nodes.find(n => n.id === instance.currentNodeId);
+        if (currentNode) {
+          return `审批中(${passed}/${total}) · ${currentNode.name}`;
+        }
+      }
+      return `审批流转中(${passed}/${total})`;
+    }
+    return APPROVAL_STATUS_LABEL[record.status];
   };
 
   const handleQuickAction = (record: BusinessRecord, action: string) => {
@@ -178,9 +213,15 @@ const BusinessPage: React.FC = () => {
           <View className={styles.businessList}>
             {filteredRecords.map(record => {
               const steps = STEP_LABELS[record.status];
+              const instance = approvalInstances.find(i => i.businessId === record.id);
+              const statusLabel = getApprovalProgressLabel(record);
               return (
                 <View key={record.id}>
-                  <BusinessCard record={record} onClick={() => handleRecordClick(record)} />
+                  <BusinessCard
+                    record={record}
+                    onClick={() => handleRecordClick(record)}
+                    customStatus={statusLabel}
+                  />
                   <View style={{ marginTop: -8, marginBottom: 24 }}>
                     <View className={styles.progressMini}>
                       {steps.map((step, idx) => (
@@ -188,13 +229,36 @@ const BusinessPage: React.FC = () => {
                           key={idx}
                           className={classnames(
                             styles.progressStep,
-                            styles[getStepClass(record.status, idx)]
+                            styles[getStepClass(record.status, idx, instance)]
                           )}
                         >
                           {step}
                         </View>
                       ))}
                     </View>
+                    {record.status === 'rejected' && record.remark && (
+                      <View className={styles.rejectReasonBar}>
+                        <Text className={styles.rejectReasonLabel}>💬 驳回理由：</Text>
+                        <Text className={styles.rejectReasonText}>{record.remark}</Text>
+                      </View>
+                    )}
+                    {record.status === 'approving' && instance?.currentNodeId && (
+                      <View className={styles.approvalHintBar}>
+                        <Text className={styles.approvalHintText}>
+                          ⏳ 当前在「{(() => {
+                            const chain = approvalChainConfigs.find(c => c.id === instance.chainConfigId);
+                            return chain?.nodes.find(n => n.id === instance.currentNodeId)?.name || '审批节点';
+                          })()}」等待审批
+                        </Text>
+                      </View>
+                    )}
+                    {record.status === 'completed' && instance?.status === 'approved' && (
+                      <View className={styles.completeHintBar}>
+                        <Text className={styles.completeHintText}>
+                          ✅ 全部审批节点已通过，业务办理完成
+                        </Text>
+                      </View>
+                    )}
                     <View className={styles.actionRow}>
                       {(record.status === 'queuing' || record.status === 'processing') && (
                         <>

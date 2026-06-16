@@ -26,6 +26,7 @@ import {
   completeService,
   DEFAULT_CONFIG
 } from '@/utils/queueManager';
+import { routeApprovalChain } from '@/utils/approvalRouter';
 
 interface AppState {
   businessTypes: BusinessType[];
@@ -64,14 +65,15 @@ interface AppState {
     approverId: string,
     approverName: string,
     comment?: string
-  ) => void;
+  ) => { success: boolean; message: string };
   rejectNode: (
     instanceId: string,
     nodeId: string,
     approverId: string,
     approverName: string,
     comment?: string
-  ) => void;
+  ) => { success: boolean; message: string };
+  cleanupInvalidTodos: () => number;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -169,21 +171,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { updatedList, calledItem } = callNextNumber(get().queueList, windowNumber);
 
     if (calledItem) {
-      set({ queueList: updatedList });
-      set(state => ({
+      const now = new Date().toISOString();
+      set({
+        queueList: updatedList,
         callRecords: [
-          ...state.callRecords,
+          ...get().callRecords,
           {
             id: `cr_${Date.now()}`,
             queueId: calledItem.id,
             ticketNumber: calledItem.ticketNumber,
-            callTime: new Date().toISOString(),
+            callTime: now,
             windowNumber,
             isPassed: false
           }
-        ]
-      }));
-      console.log('[Queue] 叫号:', calledItem.ticketNumber, windowNumber);
+        ],
+        businessRecords: get().businessRecords.map(br =>
+          br.queueId === calledItem.id
+            ? { ...br, status: 'processing', updateTime: now }
+            : br
+        )
+      });
+      console.log('[Queue] 叫号并同步业务状态为办理中:', calledItem.ticketNumber, windowNumber);
     }
 
     return calledItem;
@@ -192,15 +200,101 @@ export const useAppStore = create<AppState>((set, get) => ({
   acceptNumber: queueId => {
     const item = get().queueList.find(q => q.id === queueId);
     if (!item) return;
-    set({ queueList: acceptCall(get().queueList, item) });
+    const now = new Date().toISOString();
+    set({
+      queueList: acceptCall(get().queueList, item),
+      businessRecords: get().businessRecords.map(br =>
+        br.queueId === queueId
+          ? { ...br, status: 'processing', updateTime: now }
+          : br
+      )
+    });
     console.log('[Queue] 受理号码:', item.ticketNumber);
   },
 
   completeNumber: queueId => {
-    const item = get().queueList.find(q => q.id === queueId);
+    const queueList = get().queueList;
+    const item = queueList.find(q => q.id === queueId);
     if (!item) return;
-    set({ queueList: completeService(get().queueList, item) });
-    console.log('[Queue] 完成办理:', item.ticketNumber);
+    const now = new Date().toISOString();
+
+    const businessRecord = get().businessRecords.find(br => br.queueId === queueId);
+    const businessTypeId = businessRecord?.businessTypeId;
+    const chainConfig = businessRecord?.approvalChainId
+      ? get().approvalChainConfigs.find(c => c.id === businessRecord.approvalChainId)
+      : null;
+    const businessType = get().businessTypes.find(b => b.id === businessTypeId);
+
+    let newBusinessStatus: BusinessRecord['status'] = 'completed';
+    let newInstancesToAdd: ApprovalInstance[] = [];
+    let todosToAdd: ApprovalTodoItem[] = [];
+
+    if (businessRecord && businessType?.requireApproval && chainConfig) {
+      newBusinessStatus = 'approving';
+      const routeResult = routeApprovalChain(chainConfig, chainConfig.startNodeId, businessRecord.formData || {});
+      if (routeResult.isEnd || !routeResult.nextNodeId) {
+        newBusinessStatus = 'completed';
+      } else {
+        const firstApprovalNode = findNodeById(chainConfig, routeResult.nextNodeId);
+        const newInstanceId = `ai_${Date.now()}`;
+        newInstancesToAdd = [{
+          id: newInstanceId,
+          businessId: businessRecord.id,
+          chainConfigId: chainConfig.id,
+          currentNodeId: routeResult.nextNodeId,
+          status: 'processing',
+          approvalHistory: routeResult.passedNodes
+            .filter(nid => nid !== chainConfig.startNodeId)
+            .map(nid => {
+              const n = findNodeById(chainConfig, nid);
+              return {
+                nodeId: nid,
+                nodeName: n?.name || nid,
+                action: 'route' as const,
+                time: now
+              };
+            }),
+          createTime: now
+        }];
+        if (firstApprovalNode && firstApprovalNode.type === 'approval') {
+          todosToAdd = [{
+            id: `todo_${Date.now()}`,
+            instanceId: newInstanceId,
+            businessId: businessRecord.id,
+            businessTypeName: chainConfig.businessTypeName,
+            applicantName: businessRecord.applicantName,
+            nodeId: firstApprovalNode.id,
+            nodeName: firstApprovalNode.name,
+            createTime: now,
+            priority: (firstApprovalNode.level && firstApprovalNode.level >= 3) ? 'high' : 'medium'
+          }];
+        }
+      }
+    }
+
+    set({
+      queueList: completeService(get().queueList, item),
+      businessRecords: get().businessRecords.map(br =>
+        br.queueId === queueId
+          ? {
+              ...br,
+              status: newBusinessStatus,
+              updateTime: now,
+              ...(newBusinessStatus === 'completed' ? { completeTime: now } : {}),
+              currentApprovalNodeId: newInstancesToAdd.length > 0 ? newInstancesToAdd[0].currentNodeId : undefined
+            }
+          : br
+      ),
+      approvalInstances: [...get().approvalInstances, ...newInstancesToAdd],
+      approvalTodoList: [...get().approvalTodoList, ...todosToAdd]
+    });
+
+    if (newInstancesToAdd.length > 0 && newBusinessStatus === 'approving') {
+      console.log(
+        `[Queue] 完成窗口办理，业务进入审批流。首个审批节点：${todosToAdd[0]?.nodeName || '无'}`);
+    } else {
+      console.log('[Queue] 完成窗口办理，业务直接办结');
+    }
   },
 
   addBusinessRecord: record => {
@@ -263,14 +357,29 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = new Date().toISOString();
     const instance = get().approvalInstances.find(i => i.id === instanceId);
     if (!instance) {
-      console.error('[Approval] 实例不存在:', instanceId);
-      return;
+      console.error('[Approval] 实例不存在，清理异常待办:', instanceId);
+      set(state => ({
+        approvalTodoList: state.approvalTodoList.filter(t => t.instanceId !== instanceId)
+      }));
+      return { success: false, message: '审批实例不存在，已从待办列表移除' };
     }
 
     const chainConfig = get().approvalChainConfigs.find(c => c.id === instance.chainConfigId);
     if (!chainConfig) {
-      console.error('[Approval] 审批链不存在:', instance.chainConfigId);
-      return;
+      console.error('[Approval] 审批链不存在，清理异常待办:', instance.chainConfigId);
+      set(state => ({
+        approvalTodoList: state.approvalTodoList.filter(t => t.instanceId !== instanceId)
+      }));
+      return { success: false, message: '审批链配置不存在，已从待办列表移除' };
+    }
+
+    const business = get().businessRecords.find(b => b.id === instance.businessId);
+    if (!business) {
+      console.error('[Approval] 关联业务不存在，清理异常待办:', instance.businessId);
+      set(state => ({
+        approvalTodoList: state.approvalTodoList.filter(t => t.instanceId !== instanceId)
+      }));
+      return { success: false, message: '关联业务不存在，已从待办列表移除' };
     }
 
     const currentNode = findNodeById(chainConfig, nodeId);
@@ -286,14 +395,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       time: now
     };
 
-    const business = get().businessRecords.find(b => b.id === instance.businessId);
-    const formData = business?.formData || {};
-
+    const formData = business.formData || {};
     const routeResult = advanceAfterApproval(chainConfig, nodeId, true, formData);
 
     let updatedInstance: Partial<ApprovalInstance>;
     let todoUpdates: ApprovalTodoItem[] = [];
     let businessStatusUpdate: { id: string; status: BusinessRecord['status']; remark?: string } | null = null;
+    let successMessage = '';
 
     if (routeResult.isEnd || !routeResult.nextNodeId) {
       updatedInstance = {
@@ -302,9 +410,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         completeTime: now,
         approvalHistory: [...instance.approvalHistory, newHistoryRecord]
       };
-      if (instance.businessId) {
-        businessStatusUpdate = { id: instance.businessId, status: 'completed' };
-      }
+      businessStatusUpdate = { id: instance.businessId, status: 'completed' };
+      successMessage = '审批通过，流程已全部完成！';
       console.log('[Approval] 流程结束，审批通过');
     } else {
       const nextNode = findNodeById(chainConfig, routeResult.nextNodeId);
@@ -328,11 +435,12 @@ export const useAppStore = create<AppState>((set, get) => ({
             priority: (nextNode.level && nextNode.level >= 3) ? 'high' : 'medium'
           }
         ];
+        successMessage = `审批通过，已流转到下一节点：${nextNode.name}`;
+      } else {
+        successMessage = '审批通过，正在推进流程...';
       }
 
-      if (instance.businessId) {
-        businessStatusUpdate = { id: instance.businessId, status: 'approving' };
-      }
+      businessStatusUpdate = { id: instance.businessId, status: 'approving' };
       console.log('[Approval] 推进到下一节点:', routeResult.nextNodeId, nextNode?.name);
     }
 
@@ -341,7 +449,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         inst.id === instanceId ? { ...inst, ...updatedInstance } : inst
       ),
       approvalTodoList: [
-        ...state.approvalTodoList.filter(t => t.instanceId !== instanceId),
+        ...state.approvalTodoList.filter(t => t.instanceId !== instanceId || t.nodeId !== nodeId),
         ...todoUpdates
       ],
       businessRecords: businessStatusUpdate
@@ -359,17 +467,39 @@ export const useAppStore = create<AppState>((set, get) => ({
           )
         : state.businessRecords
     }));
+
+    return { success: true, message: successMessage };
   },
 
   rejectNode: (instanceId, nodeId, approverId, approverName, comment) => {
     const now = new Date().toISOString();
     const instance = get().approvalInstances.find(i => i.id === instanceId);
     if (!instance) {
-      console.error('[Approval] 实例不存在:', instanceId);
-      return;
+      console.error('[Approval] 实例不存在，清理异常待办:', instanceId);
+      set(state => ({
+        approvalTodoList: state.approvalTodoList.filter(t => t.instanceId !== instanceId)
+      }));
+      return { success: false, message: '审批实例不存在，已从待办列表移除' };
     }
 
     const chainConfig = get().approvalChainConfigs.find(c => c.id === instance.chainConfigId);
+    if (!chainConfig) {
+      console.error('[Approval] 审批链不存在，清理异常待办:', instance.chainConfigId);
+      set(state => ({
+        approvalTodoList: state.approvalTodoList.filter(t => t.instanceId !== instanceId)
+      }));
+      return { success: false, message: '审批链配置不存在，已从待办列表移除' };
+    }
+
+    const business = get().businessRecords.find(b => b.id === instance.businessId);
+    if (!business) {
+      console.error('[Approval] 关联业务不存在，清理异常待办:', instance.businessId);
+      set(state => ({
+        approvalTodoList: state.approvalTodoList.filter(t => t.instanceId !== instanceId)
+      }));
+      return { success: false, message: '关联业务不存在，已从待办列表移除' };
+    }
+
     const currentNode = chainConfig ? findNodeById(chainConfig, nodeId) : null;
     const nodeName = currentNode?.name || nodeId;
 
@@ -396,7 +526,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
           : inst
       ),
-      approvalTodoList: state.approvalTodoList.filter(t => t.instanceId !== instanceId),
+      approvalTodoList: state.approvalTodoList.filter(
+        t => !(t.instanceId === instanceId && t.nodeId === nodeId)
+      ),
       businessRecords: state.businessRecords.map(br =>
         br.id === instance.businessId
           ? {
@@ -411,5 +543,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
 
     console.log('[Approval] 审批拒绝:', instanceId, nodeId, comment);
+    return { success: true, message: `审批已驳回，理由：${comment || '无'}` };
+  },
+
+  cleanupInvalidTodos: () => {
+    const state = get();
+    const validInstanceIds = new Set(state.approvalInstances.map(i => i.id));
+    const validBusinessIds = new Set(state.businessRecords.map(b => b.id));
+    let removed = 0;
+    set(s => {
+      const filtered = s.approvalTodoList.filter(t => {
+        const instanceOk = validInstanceIds.has(t.instanceId);
+        const businessOk = validBusinessIds.has(t.businessId);
+        if (!instanceOk || !businessOk) {
+          removed++;
+          console.log('[Approval] 清理异常待办:', t.id, t.nodeName, !instanceOk ? '实例无效' : '业务无效');
+          return false;
+        }
+        return true;
+      });
+      return { approvalTodoList: filtered };
+    });
+    return removed;
   }
 }));

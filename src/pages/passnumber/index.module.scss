@@ -155,6 +155,16 @@
   border-left-color: $color-error;
 }
 
+.callLogCardHighlight {
+  animation: highlightPulse 1.5s ease-in-out;
+  box-shadow: 0 0 0 4rpx rgba(30, 111, 255, 0.35), $shadow-card;
+}
+
+@keyframes highlightPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+
 .logHeader {
   display: flex;
   justify-content: space-between;
