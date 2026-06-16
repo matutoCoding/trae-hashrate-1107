@@ -32,6 +32,7 @@ const BusinessDetailPage: React.FC = () => {
   const approvalInstances = useAppStore(s => s.approvalInstances);
   const approvalChainConfigs = useAppStore(s => s.approvalChainConfigs);
   const queueList = useAppStore(s => s.queueList);
+  const addMaterialToBusiness = useAppStore(s => s.addMaterialToBusiness);
 
   const [record, setRecord] = useState<BusinessRecord | null>(null);
   const [instance, setInstance] = useState<ApprovalInstance | null>(null);
@@ -140,6 +141,28 @@ const BusinessDetailPage: React.FC = () => {
     return map[type] || '';
   };
 
+  const MATERIAL_OPTIONS = [
+    '身份证正反面',
+    '户口簿',
+    '居住证明',
+    '婚姻证明',
+    '收入证明',
+    '银行流水',
+    '购房合同',
+    '租赁合同',
+    '营业执照',
+    '公司章程',
+    '税务登记证',
+    '医疗发票',
+    '诊断证明',
+    '出院小结',
+    '不动产证',
+    '贷款合同',
+    '首付款发票',
+    '契税完税证明',
+    '其他材料'
+  ];
+
   const handleAction = (action: string) => {
     console.log('[BusinessDetail] 操作:', action);
     switch (action) {
@@ -151,11 +174,18 @@ const BusinessDetailPage: React.FC = () => {
         }
         break;
       case 'material':
+        if (!record) return;
         Taro.showActionSheet({
-          itemList: ['上传身份证', '上传证明材料', '查看已有材料'],
+          itemList: MATERIAL_OPTIONS.filter(m => !record.materials.includes(m)),
           success: res => {
-            Taro.showToast({ title: '材料功能开发中', icon: 'none' });
-          }
+            const selectedMaterial = MATERIAL_OPTIONS.filter(m => !record.materials.includes(m))[res.tapIndex];
+            if (selectedMaterial) {
+              addMaterialToBusiness(record.id, selectedMaterial);
+              Taro.showToast({ title: `已添加「${selectedMaterial}」`, icon: 'success' });
+              console.log('[BusinessDetail] 添加材料:', record.id, selectedMaterial);
+            }
+          },
+          fail: () => {}
         });
         break;
       case 'contact':

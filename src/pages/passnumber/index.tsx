@@ -13,6 +13,7 @@ const PassNumberPage: React.FC = () => {
   const queueList = useAppStore(s => s.queueList);
   const callRecords = useAppStore(s => s.callRecords);
   const processPass = useAppStore(s => s.processPass);
+  const invalidateQueueItem = useAppStore(s => s.invalidateQueueItem);
   const systemConfig = useAppStore(s => s.systemConfig);
 
   const [activeTab, setActiveTab] = useState<TabType>('passed');
@@ -98,11 +99,17 @@ const PassNumberPage: React.FC = () => {
         if (res.tapIndex === 2) {
           Taro.showModal({
             title: '确认作废',
-            content: `确定要强制作废号码 ${item.ticketNumber} 吗？此操作不可恢复。`,
+            content: `确定要强制作废号码 ${item.ticketNumber} 吗？\n当前过号${item.passCount}/${item.maxPassCount}次\n\n作废后将补齐过号记录至${item.maxPassCount}次，此操作不可恢复。`,
             confirmColor: '#F53F3F',
             success: r => {
               if (r.confirm) {
-                Taro.showToast({ title: '已强制作废', icon: 'success' });
+                invalidateQueueItem(item.id);
+                Taro.showToast({
+                  title: `号码 ${item.ticketNumber} 已作废`,
+                  icon: 'none',
+                  duration: 2000
+                });
+                console.log('[PassNumber] 强制作废:', item.id, item.ticketNumber);
               }
             }
           });

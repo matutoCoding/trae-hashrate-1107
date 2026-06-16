@@ -3,6 +3,7 @@ import { View, Text, ScrollView } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 import { useAppStore } from '@/store';
+import { advanceAfterApproval } from '@/utils/approvalRouter';
 import type {
   ApprovalTodoItem,
   ApprovalChainConfig,
@@ -14,6 +15,7 @@ const ApprovalPage: React.FC = () => {
   const approvalTodoList = useAppStore(s => s.approvalTodoList);
   const approvalChainConfigs = useAppStore(s => s.approvalChainConfigs);
   const approvalInstances = useAppStore(s => s.approvalInstances);
+  const businessRecords = useAppStore(s => s.businessRecords);
   const currentUser = useAppStore(s => s.currentUser);
   const approveNode = useAppStore(s => s.approveNode);
   const rejectNode = useAppStore(s => s.rejectNode);
@@ -51,8 +53,28 @@ const ApprovalPage: React.FC = () => {
             currentUser.name,
             res.content
           );
-          Taro.showToast({ title: '审批通过', icon: 'success' });
-          console.log('[Approval] 通过审批:', todo);
+          const instance = approvalInstances.find(i => i.id === todo.instanceId);
+          const chainConfig = instance
+            ? approvalChainConfigs.find(c => c.id === instance.chainConfigId)
+            : null;
+          const business = businessRecords.find(b => b.id === todo.businessId);
+          const formData = business?.formData || {};
+          let nextStepMsg = '';
+          if (chainConfig && instance) {
+            const routeResult = advanceAfterApproval(chainConfig, todo.nodeId, true, formData);
+            if (routeResult.isEnd || !routeResult.nextNodeId) {
+              nextStepMsg = '\n✅ 审批流程已全部通过，业务办理完成！';
+            } else {
+              const nextNode = chainConfig.nodes.find(n => n.id === routeResult.nextNodeId);
+              nextStepMsg = `\n→ 推进到下一节点：${nextNode?.name || routeResult.nextNodeId}`;
+            }
+          }
+          Taro.showToast({
+            title: '审批通过' + nextStepMsg,
+            icon: 'none',
+            duration: 2500
+          });
+          console.log('[Approval] 通过审批:', todo, nextStepMsg);
         }
       }
     });
@@ -78,7 +100,11 @@ const ApprovalPage: React.FC = () => {
             currentUser.name,
             res.content
           );
-          Taro.showToast({ title: '已驳回', icon: 'none' });
+          Taro.showToast({
+            title: '已驳回，业务状态已更新',
+            icon: 'none',
+            duration: 2000
+          });
           console.log('[Approval] 驳回审批:', todo, res.content);
         }
       }

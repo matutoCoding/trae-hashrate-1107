@@ -15,6 +15,7 @@ const QueueConfirmPage: React.FC = () => {
   const approvalChainConfigs = useAppStore(s => s.approvalChainConfigs);
 
   const { bizId, bizName, bizCode } = router.params;
+  const decodedBizName = bizName ? decodeURIComponent(bizName) : '';
   const [business, setBusiness] = useState<BusinessType | null>(null);
   const [citizenName, setCitizenName] = useState('');
   const [citizenId, setCitizenId] = useState('');
@@ -33,16 +34,24 @@ const QueueConfirmPage: React.FC = () => {
   ).length;
 
   const validateForm = (): string | null => {
-    if (!citizenName.trim()) return '请输入姓名';
-    if (!/^\d{17}[\dXx]$/.test(citizenId)) return '请输入正确的身份证号';
-    if (!/^1[3-9]\d{9}$/.test(phone)) return '请输入正确的手机号';
+    const nameVal = citizenName.trim();
+    if (!nameVal) return '请输入姓名';
+    if (nameVal.length < 2) return '姓名至少2个字符';
+    if (!/^[\u4e00-\u9fa5a-zA-Z·]+$/.test(nameVal)) return '姓名只能包含中文、英文或·';
+    if (!/^\d{17}[\dXx]$/.test(citizenId.trim())) return '请输入正确的18位身份证号';
+    if (!/^1[3-9]\d{9}$/.test(phone.trim())) return '请输入正确的11位手机号';
     return null;
-  });
+  };
 
   const handleSubmit = () => {
     const error = validateForm();
     if (error) {
-      Taro.showToast({ title: error, icon: 'none' });
+      Taro.showToast({ title: error, icon: 'none', duration: 2000 });
+      return;
+    }
+
+    if (!bizId) {
+      Taro.showToast({ title: '业务信息异常，请返回重试', icon: 'none' });
       return;
     }
 
@@ -55,7 +64,7 @@ const QueueConfirmPage: React.FC = () => {
         const chainConfig = approvalChainConfigs.find(c => c.businessTypeId === bizId);
         addBusinessRecord({
           businessTypeId: bizId!,
-          businessTypeName: bizName!,
+          businessTypeName: decodedBizName || queueItem.businessTypeName,
           queueId: queueItem.id,
           ticketNumber: queueItem.ticketNumber,
           applicantName: citizenName.trim(),
@@ -69,18 +78,16 @@ const QueueConfirmPage: React.FC = () => {
 
         console.log('[QueueConfirm] 取号成功', queueItem);
 
-        Taro.showModal({
-          title: '🎉 取号成功',
-          content: `您的号码是：${queueItem.ticketNumber}\n业务：${bizName}\n前方等待：${currentWaitCount}人\n预计等待：${queueItem.estimatedWaitTime}分钟`,
-          showCancel: false,
-          success: () => {
-            Taro.switchTab({ url: '/pages/queue/index' });
-          }
-        });
+        Taro.showToast({ title: '取号成功！', icon: 'success', duration: 1500 });
+        setTimeout(() => {
+          Taro.switchTab({ url: '/pages/queue/index' });
+        }, 1200);
+      } else {
+        Taro.showToast({ title: '取号失败，请重试', icon: 'none' });
       }
     } catch (err) {
       console.error('[QueueConfirm] 取号失败:', err);
-      Taro.showToast({ title: '取号失败，请重试', icon: 'none' });
+      Taro.showToast({ title: '取号失败，请重试', icon: 'none', duration: 2000 });
     } finally {
       setSubmitting(false);
     }
