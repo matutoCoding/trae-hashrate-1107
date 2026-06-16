@@ -1,0 +1,249 @@
+@use '@/styles/variables.scss' as *;
+
+.scrollContainer {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.chainContainer {
+  position: relative;
+  padding: $spacing-lg;
+  min-width: 1000rpx;
+}
+
+.svgLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.connectionLine {
+  position: absolute;
+  height: 2rpx;
+  background: $color-border-primary;
+  z-index: 0;
+}
+
+.node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  width: 180rpx;
+  min-height: 100rpx;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  border: 2rpx solid $color-border;
+  box-shadow: $shadow-card;
+  z-index: 1;
+  transition: all $transition-base;
+}
+
+.nodeTypeStart {
+  border-color: $color-success;
+  background: $color-success-bg;
+}
+
+.nodeTypeEnd {
+  border-color: $color-error;
+  background: $color-error-bg;
+}
+
+.nodeTypeCondition {
+  border-color: $color-warning;
+  background: $color-warning-bg;
+  border-radius: 50%;
+}
+
+.nodeTypeApproval {
+  border-color: $color-primary;
+  background: $color-primary-bg;
+}
+
+.nodeStatusCompleted {
+  border-color: $color-success;
+  background: $color-success-bg;
+  opacity: 0.9;
+}
+
+.nodeStatusCurrent {
+  border-color: $color-primary;
+  border-width: 4rpx;
+  box-shadow: 0 0 0 8rpx $color-primary-bg, $shadow-card-hover;
+  animation: glow 2s ease-in-out infinite;
+}
+
+.nodeStatusRejected {
+  border-color: $color-error;
+  background: $color-error-bg;
+}
+
+.nodeHighlighted {
+  transform: scale(1.02);
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 0 8rpx $color-primary-bg, $shadow-card;
+  }
+  50% {
+    box-shadow: 0 0 0 16rpx rgba(30, 111, 255, 0.05), $shadow-card-hover;
+  }
+}
+
+.nodeIcon {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $gradient-primary;
+  border-radius: $radius-round;
+  margin-right: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.nodeTypeCondition .nodeIcon {
+  background: $gradient-warning;
+  border-radius: $radius-xs;
+  transform: rotate(45deg);
+}
+
+.nodeTypeCondition .nodeIconText {
+  transform: rotate(-45deg);
+}
+
+.nodeTypeStart .nodeIcon {
+  background: $gradient-success;
+}
+
+.nodeTypeEnd .nodeIcon {
+  background: $color-error;
+}
+
+.nodeIconText {
+  color: $color-text-white;
+  font-size: 24rpx;
+  font-weight: $font-weight-bold;
+}
+
+.nodeContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.nodeName {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nodeRole {
+  display: block;
+  margin-top: 2rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.nodeLevel {
+  position: absolute;
+  top: $spacing-xs;
+  right: $spacing-sm;
+  font-size: 20rpx;
+  color: $color-primary;
+  font-weight: $font-weight-bold;
+}
+
+.nodeRecord {
+  margin-top: $spacing-xs;
+  padding-top: $spacing-xs;
+  border-top: 1rpx solid $color-divider;
+}
+
+.recordApprover {
+  font-size: 20rpx;
+  color: $color-text-secondary;
+  display: block;
+}
+
+.recordAction {
+  font-size: 20rpx;
+  font-weight: $font-weight-semibold;
+  display: inline-block;
+  margin-top: 2rpx;
+}
+
+.recordApprove {
+  color: $color-success;
+}
+
+.recordReject {
+  color: $color-error;
+}
+
+.currentBadge {
+  position: absolute;
+  top: -16rpx;
+  right: -16rpx;
+  padding: 4rpx 12rpx;
+  background: $gradient-primary;
+  border-radius: $radius-round;
+  box-shadow: $shadow-float;
+}
+
+.currentBadgeText {
+  font-size: 20rpx;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+}
+
+.legend {
+  position: absolute;
+  bottom: $spacing-md;
+  right: $spacing-lg;
+  display: flex;
+  gap: $spacing-lg;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  box-shadow: $shadow-card;
+  z-index: 10;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+}
+
+.legendDot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: $radius-round;
+  margin-right: $spacing-xs;
+}
+
+.legendDotCompleted {
+  background: $color-success;
+}
+
+.legendDotCurrent {
+  background: $color-primary;
+  box-shadow: 0 0 0 4rpx $color-primary-bg;
+}
+
+.legendDotPending {
+  background: $color-border;
+}
+
+.legendText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}

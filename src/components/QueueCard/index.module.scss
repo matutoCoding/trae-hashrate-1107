@@ -1,0 +1,207 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.99);
+    box-shadow: $shadow-card-hover;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.ticketBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.ticketNumber {
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  letter-spacing: 2rpx;
+  line-height: 1.2;
+}
+
+.statusTag {
+  margin-top: $spacing-xs;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.statusWaiting {
+  background: $color-queue-bg;
+  color: $color-queue;
+}
+
+.statusCalling {
+  background: $color-queue-bg;
+  color: $color-queue;
+  animation: pulse 1.5s infinite;
+}
+
+.statusProcessing {
+  background: $color-primary-bg;
+  color: $color-primary;
+}
+
+.statusPassed {
+  background: $color-warning-bg;
+  color: $color-warning;
+}
+
+.statusCompleted {
+  background: $color-success-bg;
+  color: $color-success;
+}
+
+.statusInvalid {
+  background: $color-invalid-bg;
+  color: $color-invalid;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.infoBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.bizName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.citizenInfo {
+  margin-top: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.cardBody {
+  min-height: 80rpx;
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm 0;
+}
+
+.infoLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.infoValue {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.infoValueHighlight {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.callingBlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-md;
+  background: $color-queue-bg;
+  border-radius: $radius-md;
+  animation: pulse 1.5s infinite;
+}
+
+.windowTag {
+  font-size: $font-size-md;
+  color: $color-queue;
+  font-weight: $font-weight-medium;
+}
+
+.windowNumber {
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  color: $color-queue;
+  margin: 0 $spacing-md;
+}
+
+.passedInfo {
+  padding: $spacing-md;
+  background: $color-warning-bg;
+  border-radius: $radius-md;
+}
+
+.passCount {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-warning;
+  margin-bottom: $spacing-xs;
+}
+
+.requeueInfo {
+  display: block;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.invalidInfo {
+  padding: $spacing-md;
+  background: $color-invalid-bg;
+  border-radius: $radius-md;
+}
+
+.invalidText {
+  font-size: $font-size-md;
+  color: $color-error;
+  font-weight: $font-weight-medium;
+}
+
+.completedInfo {
+  padding: $spacing-md;
+  background: $color-success-bg;
+  border-radius: $radius-md;
+}
+
+.completedText {
+  font-size: $font-size-md;
+  color: $color-success;
+  font-weight: $font-weight-medium;
+}
+
+.passWarning {
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx dashed $color-border;
+}
+
+.passWarningText {
+  font-size: $font-size-sm;
+  color: $color-error;
+}

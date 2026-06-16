@@ -1,0 +1,389 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  padding-bottom: 160rpx;
+}
+
+.infoCard {
+  background: $gradient-primary;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  color: $color-text-white;
+  box-shadow: $shadow-card;
+}
+
+.bizName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  display: block;
+}
+
+.chainName {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  margin-top: $spacing-xs;
+  display: block;
+}
+
+.chainMeta {
+  display: flex;
+  gap: $spacing-lg;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.metaItem {
+  font-size: $font-size-xs;
+  opacity: 0.85;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.addBtn {
+  padding: $spacing-xs $spacing-md;
+  background: $color-primary-bg;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.nodeList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.nodeCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  border-left: 8rpx solid $color-primary;
+}
+
+.nodeCardStart {
+  border-left-color: $color-success;
+}
+
+.nodeCardCondition {
+  border-left-color: $color-warning;
+}
+
+.nodeCardApproval {
+  border-left-color: $color-primary;
+}
+
+.nodeCardEnd {
+  border-left-color: $color-error;
+}
+
+.nodeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.nodeTypeTag {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background: $color-primary-bg;
+  color: $color-primary;
+}
+
+.nodeTagStart {
+  background: $color-success-bg;
+  color: $color-success;
+}
+
+.nodeTagCondition {
+  background: $color-warning-bg;
+  color: $color-warning;
+}
+
+.nodeTagEnd {
+  background: $color-error-bg;
+  color: $color-error;
+}
+
+.nodeActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.nodeActionIcon {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-round;
+  background: $color-bg-secondary;
+  font-size: $font-size-sm;
+}
+
+.nodeForm {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.formLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.formInput {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 $spacing-md;
+  background: $color-bg-secondary;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+  border: 2rpx solid transparent;
+}
+
+.formInput input,
+.formInput textarea,
+.formInput select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  width: 100%;
+}
+
+.formRowInline {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.formRowInline .formRow {
+  flex: 1;
+}
+
+.conditionList {
+  background: $color-warning-bg;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-top: $spacing-xs;
+}
+
+.conditionItem {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.conditionRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.conditionField {
+  flex: 2;
+  height: 64rpx;
+  padding: 0 $spacing-sm;
+  background: $color-bg-secondary;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  display: flex;
+  align-items: center;
+}
+
+.conditionOp {
+  width: 140rpx;
+  height: 64rpx;
+  padding: 0 $spacing-xs;
+  background: $color-bg-secondary;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conditionValue {
+  flex: 2;
+  height: 64rpx;
+  padding: 0 $spacing-sm;
+  background: $color-bg-secondary;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  display: flex;
+  align-items: center;
+}
+
+.conditionDel {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-error-bg;
+  color: $color-error;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+}
+
+.logicSwitch {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.logicBtn {
+  padding: $spacing-xs $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  border: 2rpx solid $color-border;
+}
+
+.logicBtnActive {
+  background: $color-warning;
+  color: $color-text-white;
+  border-color: $color-warning;
+}
+
+.nextNodeConfig {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx dashed $color-border;
+}
+
+.nextNodeLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-medium;
+}
+
+.nextNodeSelect {
+  height: 72rpx;
+  padding: 0 $spacing-md;
+  background: $color-bg-secondary;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trueBranch {
+  border-left: 4rpx solid $color-success;
+  padding-left: $spacing-md;
+}
+
+.falseBranch {
+  border-left: 4rpx solid $color-error;
+  padding-left: $spacing-md;
+}
+
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-lg $page-padding;
+  background: $color-bg-card;
+  box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.08);
+  display: flex;
+  gap: $spacing-md;
+  z-index: 100;
+}
+
+.cancelBtn {
+  flex: 1;
+  height: $button-height-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-button;
+  background: $color-bg-secondary;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.saveBtn {
+  flex: 2;
+  height: $button-height-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-button;
+  background: $gradient-primary;
+  font-size: $font-size-md;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+  box-shadow: $shadow-float;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.tipCard {
+  background: $color-primary-bg;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  border-left: 8rpx solid $color-primary;
+}
+
+.tipTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  margin-bottom: $spacing-sm;
+  display: block;
+}
+
+.tipText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.8;
+  display: block;
+}

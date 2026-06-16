@@ -1,0 +1,302 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  padding-bottom: 48rpx;
+}
+
+.headerCard {
+  background: $gradient-primary;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-lg;
+  color: $color-text-white;
+  box-shadow: $shadow-card-hover;
+}
+
+.bizName {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  display: block;
+}
+
+.bizSubtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  margin-top: $spacing-xs;
+  display: block;
+}
+
+.statusBadge {
+  display: inline-block;
+  margin-top: $spacing-md;
+  padding: $spacing-xs $spacing-md;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-around;
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.infoItem {
+  text-align: center;
+}
+
+.infoNum {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  display: block;
+}
+
+.infoLabel {
+  font-size: $font-size-xs;
+  opacity: 0.9;
+  display: block;
+  margin-top: $spacing-xs;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.chainContainer {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.routePreview {
+  background: $color-success-bg;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  border-left: 8rpx solid $color-success;
+}
+
+.routeTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+  margin-bottom: $spacing-sm;
+  display: block;
+}
+
+.routePath {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.pathNode {
+  padding: $spacing-xs $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04);
+}
+
+.pathNodeCurrent {
+  background: $gradient-primary;
+  color: $color-text-white;
+  box-shadow: $shadow-card;
+}
+
+.pathArrow {
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+}
+
+.historyCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.historyTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+  display: block;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.timeline {
+  position: relative;
+  padding-left: $spacing-lg;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 10rpx;
+  top: 10rpx;
+  bottom: 10rpx;
+  width: 2rpx;
+  background: $color-border;
+}
+
+.timelineItem {
+  position: relative;
+  padding-bottom: $spacing-lg;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.timelineDot {
+  position: absolute;
+  left: -34rpx;
+  top: 4rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: $radius-round;
+  background: $color-success;
+  border: 4rpx solid $color-bg-card;
+  box-shadow: 0 0 0 2rpx $color-success;
+}
+
+.timelineDotReject {
+  background: $color-error;
+  box-shadow: 0 0 0 2rpx $color-error;
+}
+
+.timelineDotRoute {
+  background: $color-warning;
+  box-shadow: 0 0 0 2rpx $color-warning;
+}
+
+.timelineContent {
+  background: $color-bg-secondary;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.timelineHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+}
+
+.timelineNodeName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.timelineTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.timelineApprover {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  display: block;
+}
+
+.timelineComment {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-sm;
+  line-height: 1.6;
+  border-left: 4rpx solid $color-primary;
+}
+
+.formDataCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.formDataTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+  display: block;
+}
+
+.formRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.formLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.formValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  max-width: 60%;
+  text-align: right;
+}
+
+.routeLogCard {
+  background: #0f172a;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.routeLogTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: #94a3b8;
+  margin-bottom: $spacing-md;
+  display: block;
+}
+
+.routeLogLine {
+  font-size: $font-size-xs;
+  color: #818cf8;
+  line-height: 2;
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.routeLogLineStart { color: #10b981; }
+.routeLogLineCondition { color: #f59e0b; }
+.routeLogLineApproval { color: #60a5fa; }
+.routeLogLineEnd { color: #10b981; }
+.routeLogLineError { color: #ef4444; }

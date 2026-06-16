@@ -1,0 +1,355 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  padding-bottom: 48rpx;
+}
+
+.summaryBanner {
+  background: $gradient-primary;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-lg;
+  color: $color-text-white;
+  box-shadow: $shadow-card-hover;
+}
+
+.bannerTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  margin-bottom: $spacing-md;
+  display: block;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}
+
+.summaryItem {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-md;
+  padding: $spacing-md $spacing-xs;
+}
+
+.summaryNum {
+  font-size: 36rpx;
+  font-weight: $font-weight-bold;
+  display: block;
+}
+
+.summaryLabel {
+  font-size: $font-size-xs;
+  opacity: 0.9;
+  display: block;
+  margin-top: $spacing-xs;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.actionLink {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.todoCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  border-left: 8rpx solid $color-warning;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.99);
+    box-shadow: $shadow-card-hover;
+  }
+}
+
+.todoCardHigh {
+  border-left-color: $color-error;
+}
+
+.todoCardLow {
+  border-left-color: $color-primary;
+}
+
+.todoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-md;
+}
+
+.todoTitleBlock {
+  flex: 1;
+}
+
+.todoBizName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+}
+
+.todoNodeName {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  margin-top: $spacing-xs;
+  display: block;
+}
+
+.priorityTag {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background: $color-warning-bg;
+  color: $color-warning;
+}
+
+.priorityHigh {
+  background: $color-error-bg;
+  color: $color-error;
+}
+
+.priorityLow {
+  background: $color-primary-bg;
+  color: $color-primary;
+}
+
+.todoBody {
+  padding: $spacing-md;
+  background: $color-bg-secondary;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-md;
+}
+
+.todoInfoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-xs 0;
+}
+
+.todoInfoLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.todoInfoValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.todoActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.todoBtn {
+  flex: 1;
+  height: $button-height-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.btnApprove {
+  background: $gradient-success;
+  color: $color-text-white;
+}
+
+.btnReject {
+  background: $color-error-bg;
+  color: $color-error;
+}
+
+.btnDetail {
+  background: $color-primary-bg;
+  color: $color-primary;
+}
+
+.chainListCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.chainCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.chainBizName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.chainVersion {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  background: $color-bg-secondary;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+}
+
+.chainSummary {
+  display: flex;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.chainMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.chainMetaLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.chainMetaValue {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  margin-top: $spacing-xs;
+}
+
+.chainMiniPreview {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-md;
+  background: $color-bg-secondary;
+  border-radius: $radius-md;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-height: 80rpx;
+}
+
+.miniNode {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-xs $spacing-sm;
+  background: $color-bg-card;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  border: 1rpx solid $color-border;
+  flex-shrink: 0;
+}
+
+.miniNodeApproval {
+  background: $color-primary-bg;
+  color: $color-primary;
+  border-color: $color-border-primary;
+}
+
+.miniNodeCondition {
+  background: $color-warning-bg;
+  color: $color-warning;
+  border-color: rgba(255, 125, 0, 0.3);
+}
+
+.miniNodeStart {
+  background: $color-success-bg;
+  color: $color-success;
+  border-color: rgba(0, 180, 42, 0.3);
+}
+
+.miniNodeEnd {
+  background: $color-error-bg;
+  color: $color-error;
+  border-color: rgba(245, 63, 63, 0.3);
+}
+
+.miniArrow {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+}
+
+.chainActions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.chainBtn {
+  flex: 1;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  background: $color-primary-bg;
+  color: $color-primary;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.chainBtnSecondary {
+  background: $color-bg-secondary;
+  color: $color-text-secondary;
+}
+
+.emptyState {
+  padding: 80rpx 0;
+  text-align: center;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+}
+
+.emptyIcon {
+  font-size: 80rpx;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+  display: block;
+}
