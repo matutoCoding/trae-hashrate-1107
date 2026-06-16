@@ -61,6 +61,34 @@
   margin-top: $spacing-xs;
 }
 
+.progressSummary {
+  margin-top: $spacing-lg;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-md;
+}
+
+.progressSummaryText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  display: block;
+  margin-bottom: $spacing-sm;
+}
+
+.progressSummaryBar {
+  height: 12rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: $radius-round;
+  overflow: hidden;
+}
+
+.progressSummaryFill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD84D 0%, #FFFFFF 100%);
+  border-radius: $radius-round;
+  transition: width 0.4s ease;
+}
+
 .sectionHeader {
   display: flex;
   justify-content: space-between;
@@ -114,6 +142,13 @@
   background: $gradient-primary;
   color: $color-text-white;
   box-shadow: $shadow-card;
+}
+
+.pathNodeApproval {
+  border: 2rpx solid rgba($color-primary, 0.5);
+  background: rgba($color-primary, 0.08);
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
 }
 
 .pathArrow {

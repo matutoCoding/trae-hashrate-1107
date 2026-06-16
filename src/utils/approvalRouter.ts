@@ -130,62 +130,123 @@ export const advanceAfterApproval = (
   return routeApprovalChain(config, currentNode.nextNodeId, formData);
 };
 
-export const getApprovalPathPreview = (
+/**
+ * 完整遍历整条审批路径（从 start 走到 end，穿过所有 approval 节点不中断）
+ * 基于给定 formData 选择实际会走的分支，返回路径上所有节点 id 以及其中的审批节点 id 列表
+ */
+export const walkFullApprovalPath = (
   config: ApprovalChainConfig,
-  formData: Record<string, any>
-): { nodes: ApprovalNodeConfig[]; branches: Array<{ from: string; to: string; label?: string }> } => {
-  const nodes: ApprovalNodeConfig[] = [];
-  const branches: Array<{ from: string; to: string; label?: string }> = [];
-  let currentNodeId = config.startNodeId;
-  let safetyCounter = 0;
+  formData: Record<string, any> = {}
+): {
+  fullPathNodeIds: string[];
+  approvalNodeIds: string[];
+  lastApprovalId: string | null;
+  lastBeforeEndId: string | null;
+} => {
+  const fullPathNodeIds: string[] = [];
+  const approvalNodeIds: string[] = [];
+  let currentId = config.startNodeId;
+  let safety = 0;
+  const MAX = 200;
 
-  while (currentNodeId && safetyCounter < 100) {
-    safetyCounter++;
-    const node = findNodeById(config, currentNodeId);
+  while (currentId && safety < MAX) {
+    safety++;
+    const node = findNodeById(config, currentId);
     if (!node) break;
 
-    nodes.push(node);
+    fullPathNodeIds.push(node.id);
 
+    if (node.type === 'approval') {
+      approvalNodeIds.push(node.id);
+    }
+
+    if (node.type === 'end') {
+      break;
+    }
+
+    let nextId = '';
     switch (node.type) {
       case 'start':
-        if (node.nextNodeId) {
-          branches.push({ from: node.id, to: node.nextNodeId });
-          currentNodeId = node.nextNodeId;
-        } else {
-          currentNodeId = '';
-        }
+      case 'approval':
+        nextId = node.nextNodeId || '';
         break;
-
-      case 'condition':
+      case 'condition': {
         const condResult = evaluateConditions(
           node.conditions || [],
           node.conditionLogic || 'AND',
           formData
         );
-        const trueNext = condResult ? node.trueNextNodeId : node.falseNextNodeId;
-        const otherNext = condResult ? node.falseNextNodeId : node.trueNextNodeId;
-
-        if (trueNext) {
-          branches.push({ from: node.id, to: trueNext, label: condResult ? '是' : '否' });
-          currentNodeId = trueNext;
-        } else {
-          currentNodeId = '';
-        }
-        if (otherNext) {
-          branches.push({ from: node.id, to: otherNext, label: condResult ? '否' : '是' });
-        }
+        nextId = (condResult ? node.trueNextNodeId : node.falseNextNodeId) || '';
         break;
-
-      case 'approval':
-        if (node.nextNodeId) {
-          branches.push({ from: node.id, to: node.nextNodeId });
-        }
-        currentNodeId = '';
-        break;
-
-      case 'end':
+      }
       default:
-        currentNodeId = '';
+        nextId = '';
+    }
+    currentId = nextId;
+  }
+
+  const lastApprovalId = approvalNodeIds.length > 0
+    ? approvalNodeIds[approvalNodeIds.length - 1]
+    : null;
+  const lastBeforeEndId = fullPathNodeIds.length >= 2
+    ? fullPathNodeIds[fullPathNodeIds.length - 2]
+    : null;
+
+  return {
+    fullPathNodeIds,
+    approvalNodeIds,
+    lastApprovalId,
+    lastBeforeEndId
+  };
+};
+
+export const getApprovalPathPreview = (
+  config: ApprovalChainConfig,
+  formData: Record<string, any>
+): { nodes: ApprovalNodeConfig[]; branches: Array<{ from: string; to: string; label?: string }> } => {
+  const walk = walkFullApprovalPath(config, formData);
+  const nodes: ApprovalNodeConfig[] = [];
+  const branches: Array<{ from: string; to: string; label?: string }> = [];
+
+  for (const nodeId of walk.fullPathNodeIds) {
+    const node = findNodeById(config, nodeId);
+    if (node) nodes.push(node);
+  }
+
+  for (let i = 0; i < walk.fullPathNodeIds.length - 1; i++) {
+    const fromId = walk.fullPathNodeIds[i];
+    const toId = walk.fullPathNodeIds[i + 1];
+    const fromNode = findNodeById(config, fromId);
+    let label: string | undefined;
+    if (fromNode && fromNode.type === 'condition') {
+      const condResult = evaluateConditions(
+        fromNode.conditions || [],
+        fromNode.conditionLogic || 'AND',
+        formData
+      );
+      label = condResult ? '是' : '否';
+    }
+    branches.push({ from: fromId, to: toId, label });
+  }
+
+  // 补充非走行分支（被拒绝的分支）用于可视化对比
+  for (const nodeId of walk.fullPathNodeIds) {
+    const node = findNodeById(config, nodeId);
+    if (node && node.type === 'condition') {
+      const condResult = evaluateConditions(
+        node.conditions || [],
+        node.conditionLogic || 'AND',
+        formData
+      );
+      const otherBranch = condResult ? node.falseNextNodeId : node.trueNextNodeId;
+      if (otherBranch && !walk.fullPathNodeIds.includes(otherBranch)) {
+        const otherLabel = condResult ? '否' : '是';
+        branches.push({ from: nodeId, to: otherBranch, label: otherLabel });
+        const otherNode = findNodeById(config, otherBranch);
+        if (otherNode && !nodes.find(n => n.id === otherBranch)) {
+          nodes.push(otherNode);
+        }
+      }
     }
   }
 
@@ -228,7 +289,7 @@ export const getNodeStatusMap = (
 };
 
 /**
- * 计算审批节点进度统计（基于实际会经过的路径）
+ * 计算审批节点进度统计（基于整条实际会经过的审批路线）
  * 返回：总数totalApprovals / 已通过passed / 当前进行中current / 剩余remaining / 各阶段节点列表
  */
 export const getApprovalNodeStats = (
@@ -237,47 +298,40 @@ export const getApprovalNodeStats = (
   approvalHistory: ApprovalRecord[] = [],
   currentNodeId: string = ''
 ) => {
-  const routeResult = routeApprovalChain(config, config.startNodeId, formData);
-  const pathApprovalNodeIds = routeResult.passedNodes
-    .map(id => findNodeById(config, id))
-    .filter(n => n && n.type === 'approval')
-    .map(n => n!.id);
-  if (
-    routeResult.nextNodeId &&
-    !routeResult.isEnd &&
-    !pathApprovalNodeIds.includes(routeResult.nextNodeId)
-  ) {
-    const nextNode = findNodeById(config, routeResult.nextNodeId);
-    if (nextNode && nextNode.type === 'approval') {
-      pathApprovalNodeIds.push(routeResult.nextNodeId);
-    }
-  }
-  let cursor = 0;
+  const walk = walkFullApprovalPath(config, formData);
+  const pathApprovalNodeIds = walk.approvalNodeIds;
+
+  const historyApprovals = approvalHistory.filter(h => h.action !== 'route');
   let pendingId: string | null = null;
   let passedIds: string[] = [];
-  const historyApprovals = approvalHistory.filter(h => h.action !== 'route');
+
   for (let i = 0; i < pathApprovalNodeIds.length; i++) {
     const nid = pathApprovalNodeIds[i];
     const hist = historyApprovals.find(h => h.nodeId === nid);
-    if (hist && hist.action === 'approve') {
-      passedIds.push(nid);
-      cursor = i + 1;
-    } else {
-      if (currentNodeId === nid || (!hist && cursor === i)) {
+    if (hist) {
+      if (hist.action === 'reject') {
+        break;
+      }
+      if (hist.action === 'approve') {
+        passedIds.push(nid);
+        continue;
+      }
+    }
+    if (!pendingId) {
+      if (nid === currentNodeId) {
+        pendingId = nid;
+      } else if (!hist && i === passedIds.length) {
         pendingId = nid;
       }
-      break;
     }
   }
-  const currentIndex = pendingId
-    ? pathApprovalNodeIds.indexOf(pendingId)
-    : passedIds.length === pathApprovalNodeIds.length
-      ? pathApprovalNodeIds.length
-      : cursor;
+
   const total = pathApprovalNodeIds.length;
   const passed = passedIds.length;
   const remaining = total - passed - (pendingId ? 1 : 0);
   const pendingNode = pendingId ? findNodeById(config, pendingId) : null;
+  const currentIndex = pendingId ? pathApprovalNodeIds.indexOf(pendingId) : passed;
+
   return {
     totalApprovals: total,
     passed,
@@ -287,6 +341,6 @@ export const getApprovalNodeStats = (
     pendingNodeName: pendingNode?.name || '',
     passedIds,
     allApprovalNodeIds: pathApprovalNodeIds,
-    allReachableNodes: routeResult.passedNodes
+    allReachableNodes: walk.fullPathNodeIds
   };
 };

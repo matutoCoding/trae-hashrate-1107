@@ -228,47 +228,95 @@ export const useAppStore = create<AppState>((set, get) => ({
     let newBusinessStatus: BusinessRecord['status'] = 'completed';
     let newInstancesToAdd: ApprovalInstance[] = [];
     let todosToAdd: ApprovalTodoItem[] = [];
+    let updatedInstances = get().approvalInstances;
+    let updatedTodos = get().approvalTodoList;
+    let finalCurrentNodeId: string | undefined = undefined;
+    let existingInstance: ApprovalInstance | undefined = undefined;
 
     if (businessRecord && businessType?.requireApproval && chainConfig) {
-      newBusinessStatus = 'approving';
-      const routeResult = routeApprovalChain(chainConfig, chainConfig.startNodeId, businessRecord.formData || {});
-      if (routeResult.isEnd || !routeResult.nextNodeId) {
-        newBusinessStatus = 'completed';
-      } else {
-        const firstApprovalNode = findNodeById(chainConfig, routeResult.nextNodeId);
-        const newInstanceId = `ai_${Date.now()}`;
-        newInstancesToAdd = [{
-          id: newInstanceId,
-          businessId: businessRecord.id,
-          chainConfigId: chainConfig.id,
-          currentNodeId: routeResult.nextNodeId,
-          status: 'processing',
-          approvalHistory: routeResult.passedNodes
-            .filter(nid => nid !== chainConfig.startNodeId)
-            .map(nid => {
-              const n = findNodeById(chainConfig, nid);
-              return {
-                nodeId: nid,
-                nodeName: n?.name || nid,
-                action: 'route' as const,
-                time: now
-              };
-            }),
-          createTime: now
-        }];
-        if (firstApprovalNode && firstApprovalNode.type === 'approval') {
-          todosToAdd = [{
-            id: `todo_${Date.now()}`,
-            instanceId: newInstanceId,
-            businessId: businessRecord.id,
-            businessTypeName: chainConfig.businessTypeName,
-            applicantName: businessRecord.applicantName,
-            nodeId: firstApprovalNode.id,
-            nodeName: firstApprovalNode.name,
-            createTime: now,
-            priority: (firstApprovalNode.level && firstApprovalNode.level >= 3) ? 'high' : 'medium'
-          }];
+      existingInstance = get().approvalInstances.find(
+        i => i.businessId === businessRecord.id
+      );
+
+      if (existingInstance) {
+        // 沿用已有的审批实例，保持原进度
+        console.log('[Queue] 沿用已有审批实例:', existingInstance.id, '当前节点:', existingInstance.currentNodeId);
+        newBusinessStatus = existingInstance.status === 'approved'
+          ? 'completed'
+          : existingInstance.status === 'rejected'
+            ? 'rejected'
+            : 'approving';
+        finalCurrentNodeId = existingInstance.currentNodeId || undefined;
+
+        // 同一业务只保留一条当前待办：先清掉该业务已有的所有旧待办，再根据当前节点重建一条
+        const business = businessRecord;
+        updatedTodos = updatedTodos.filter(t => t.businessId !== business.id);
+        if (newBusinessStatus === 'approving' && existingInstance.currentNodeId) {
+          const currentNode = findNodeById(chainConfig, existingInstance.currentNodeId);
+          if (currentNode && currentNode.type === 'approval') {
+            todosToAdd = [{
+              id: `todo_${Date.now()}`,
+              instanceId: existingInstance.id,
+              businessId: business.id,
+              businessTypeName: chainConfig.businessTypeName,
+              applicantName: business.applicantName,
+              nodeId: currentNode.id,
+              nodeName: currentNode.name,
+              createTime: now,
+              priority: (currentNode.level && currentNode.level >= 3) ? 'high' : 'medium'
+            }];
+          }
         }
+      } else {
+        // 没有旧实例，首次进入审批流
+        newBusinessStatus = 'approving';
+        const routeResult = routeApprovalChain(chainConfig, chainConfig.startNodeId, businessRecord.formData || {});
+        if (routeResult.isEnd || !routeResult.nextNodeId) {
+          newBusinessStatus = 'completed';
+        } else {
+          const firstApprovalNode = findNodeById(chainConfig, routeResult.nextNodeId);
+          const newInstanceId = `ai_${Date.now()}`;
+          newInstancesToAdd = [{
+            id: newInstanceId,
+            businessId: businessRecord.id,
+            chainConfigId: chainConfig.id,
+            currentNodeId: routeResult.nextNodeId,
+            status: 'processing',
+            approvalHistory: routeResult.passedNodes
+              .filter(nid => nid !== chainConfig.startNodeId)
+              .map(nid => {
+                const n = findNodeById(chainConfig, nid);
+                return {
+                  nodeId: nid,
+                  nodeName: n?.name || nid,
+                  action: 'route' as const,
+                  time: now
+                };
+              }),
+            createTime: now
+          }];
+          finalCurrentNodeId = routeResult.nextNodeId;
+          // 同一业务去重：清掉旧待办后加新的
+          updatedTodos = updatedTodos.filter(t => t.businessId !== businessRecord.id);
+          if (firstApprovalNode && firstApprovalNode.type === 'approval') {
+            todosToAdd = [{
+              id: `todo_${Date.now()}`,
+              instanceId: newInstanceId,
+              businessId: businessRecord.id,
+              businessTypeName: chainConfig.businessTypeName,
+              applicantName: businessRecord.applicantName,
+              nodeId: firstApprovalNode.id,
+              nodeName: firstApprovalNode.name,
+              createTime: now,
+              priority: (firstApprovalNode.level && firstApprovalNode.level >= 3) ? 'high' : 'medium'
+            }];
+          }
+        }
+      }
+    } else {
+      // 无需审批的业务，确保其旧待办都清掉
+      if (businessRecord) {
+        updatedTodos = updatedTodos.filter(t => t.businessId !== businessRecord.id);
       }
     }
 
@@ -280,18 +328,23 @@ export const useAppStore = create<AppState>((set, get) => ({
               ...br,
               status: newBusinessStatus,
               updateTime: now,
-              ...(newBusinessStatus === 'completed' ? { completeTime: now } : {}),
-              currentApprovalNodeId: newInstancesToAdd.length > 0 ? newInstancesToAdd[0].currentNodeId : undefined
+              ...(newBusinessStatus === 'completed' || newBusinessStatus === 'rejected'
+                ? { completeTime: now }
+                : {}),
+              currentApprovalNodeId: finalCurrentNodeId
             }
           : br
       ),
-      approvalInstances: [...get().approvalInstances, ...newInstancesToAdd],
-      approvalTodoList: [...get().approvalTodoList, ...todosToAdd]
+      approvalInstances: [...updatedInstances, ...newInstancesToAdd],
+      approvalTodoList: [...updatedTodos, ...todosToAdd]
     });
 
     if (newInstancesToAdd.length > 0 && newBusinessStatus === 'approving') {
       console.log(
-        `[Queue] 完成窗口办理，业务进入审批流。首个审批节点：${todosToAdd[0]?.nodeName || '无'}`);
+        `[Queue] 完成窗口办理，新建审批流，首个审批节点：${todosToAdd[0]?.nodeName || '无'}`);
+    } else if (businessRecord && existingInstance) {
+      console.log(
+        `[Queue] 完成窗口办理，沿用已有审批实例 ${existingInstance.id}，节点：${finalCurrentNodeId}，待办：${todosToAdd.length ? todosToAdd[0].nodeName : '无'}`);
     } else {
       console.log('[Queue] 完成窗口办理，业务直接办结');
     }

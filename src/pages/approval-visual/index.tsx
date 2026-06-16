@@ -5,7 +5,7 @@ import styles from './index.module.scss';
 import { useAppStore } from '@/store';
 import ApprovalChain from '@/components/ApprovalChain';
 import type { ApprovalInstance, ApprovalChainConfig, BusinessRecord } from '@/types';
-import { routeApprovalChain, getApprovalPathPreview, getNodeStatusMap } from '@/utils/approvalRouter';
+import { routeApprovalChain, getApprovalPathPreview, getNodeStatusMap, walkFullApprovalPath, getApprovalNodeStats } from '@/utils/approvalRouter';
 import classnames from 'classnames';
 
 type Mode = 'preview' | 'instance';
@@ -50,6 +50,21 @@ const ApprovalVisualPage: React.FC = () => {
     if (!chain) return { nodes: [], branches: [] };
     return getApprovalPathPreview(chain, business?.formData || {});
   }, [chain, business]);
+
+  const fullPath = useMemo(() => {
+    if (!chain) return { fullPathNodeIds: [], approvalNodeIds: [], lastApprovalId: null, lastBeforeEndId: null };
+    return walkFullApprovalPath(chain, business?.formData || {});
+  }, [chain, business]);
+
+  const approvalStats = useMemo(() => {
+    if (!chain) return null;
+    return getApprovalNodeStats(
+      chain,
+      business?.formData || {},
+      instance?.approvalHistory || [],
+      instance?.currentNodeId || ''
+    );
+  }, [chain, business, instance]);
 
   const statusMap = useMemo(() => {
     if (!instance) return new Map<string, 'completed' | 'current' | 'pending' | 'rejected'>();
@@ -100,28 +115,47 @@ const ApprovalVisualPage: React.FC = () => {
 
         <View className={styles.infoRow}>
           <View className={styles.infoItem}>
-            <Text className={styles.infoNum}>{chain.nodes.length}</Text>
-            <Text className={styles.infoLabel}>总节点</Text>
+            <Text className={styles.infoNum}>{fullPath.fullPathNodeIds.length}</Text>
+            <Text className={styles.infoLabel}>路径节点</Text>
           </View>
           <View className={styles.infoItem}>
             <Text className={styles.infoNum}>
-              {chain.nodes.filter(n => n.type === 'approval').length}
+              {fullPath.approvalNodeIds.length}
             </Text>
-            <Text className={styles.infoLabel}>审批节点</Text>
+            <Text className={styles.infoLabel}>审批节点总数</Text>
           </View>
           <View className={styles.infoItem}>
             <Text className={styles.infoNum}>
-              {chain.nodes.filter(n => n.type === 'condition').length}
+              {approvalStats?.passed || 0}
             </Text>
-            <Text className={styles.infoLabel}>条件分支</Text>
+            <Text className={styles.infoLabel}>已通过</Text>
           </View>
           <View className={styles.infoItem}>
             <Text className={styles.infoNum}>
-              {instance ? instance.approvalHistory.length : 0}
+              {approvalStats?.remaining ?? 0}
             </Text>
-            <Text className={styles.infoLabel}>已处理</Text>
+            <Text className={styles.infoLabel}>剩余待审</Text>
           </View>
         </View>
+
+        {approvalStats && fullPath.approvalNodeIds.length > 0 && (
+          <View className={styles.progressSummary}>
+            <Text className={styles.progressSummaryText}>
+              审批进度：{approvalStats.passed}/{approvalStats.totalApprovals}
+              {approvalStats.pendingNodeName
+                ? ` · 当前待审：${approvalStats.pendingNodeName}`
+                : approvalStats.remaining === 0
+                  ? instance?.status === 'rejected' ? ' · 已驳回' : ' · 全部通过'
+                  : ''}
+            </Text>
+            <View className={styles.progressSummaryBar}>
+              <View
+                className={styles.progressSummaryFill}
+                style={{ width: `${(approvalStats.passed / approvalStats.totalApprovals) * 100}%` }}
+              />
+            </View>
+          </View>
+        )}
       </View>
 
       {business && (
@@ -142,27 +176,32 @@ const ApprovalVisualPage: React.FC = () => {
         </View>
       )}
 
-      {routeResult && (
+      {fullPath.fullPathNodeIds.length > 1 && (
         <View className={styles.routePreview}>
           <Text className={styles.routeTitle}>
-            🛤️ 动态路由计算结果（基于当前表单数据）
+            🛤️ 实际审批路线（基于当前表单数据）
           </Text>
           <View className={styles.routePath}>
-            {pathPreview.nodes.map((node, idx) => (
-              <React.Fragment key={node.id}>
-                <View
-                  className={classnames(styles.pathNode, {
-                    [styles.pathNodeCurrent]:
-                      instance && node.id === instance.currentNodeId
-                  })}
-                >
-                  {node.name}
-                </View>
-                {idx < pathPreview.nodes.length - 1 && (
-                  <Text className={styles.pathArrow}>→</Text>
-                )}
-              </React.Fragment>
-            ))}
+            {fullPath.fullPathNodeIds.map((nodeId, idx) => {
+              const node = pathPreview.nodes.find(n => n.id === nodeId);
+              const name = node?.name || nodeId;
+              const isCurrent = instance?.currentNodeId === nodeId;
+              return (
+                <React.Fragment key={nodeId}>
+                  <View
+                    className={classnames(styles.pathNode, {
+                      [styles.pathNodeCurrent]: isCurrent,
+                      [styles.pathNodeApproval]: node?.type === 'approval'
+                    })}
+                  >
+                    {name}
+                  </View>
+                  {idx < fullPath.fullPathNodeIds.length - 1 && (
+                    <Text className={styles.pathArrow}>→</Text>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </View>
         </View>
       )}
@@ -176,7 +215,7 @@ const ApprovalVisualPage: React.FC = () => {
           config={chain}
           currentNodeId={instance?.currentNodeId}
           approvalHistory={instance?.approvalHistory || []}
-          highlightPath={pathPreview.nodes.map(n => n.id)}
+          highlightPath={fullPath.fullPathNodeIds}
         />
       </View>
 
